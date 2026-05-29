@@ -191,15 +191,37 @@ $null = $find.Execute("{{NAME}}", $false, $false, $false, $false, $false,
 > `scripts/Set-WordReplace.ps1`.
 
 ### Insert a heading + paragraph at the end
+
+**On a NEW blank document** (no existing content), setting `$range.Style` on a
+collapsed Range throws `HRESULT E_FAIL`. Use `$word.Selection` or font
+properties instead:
+
+```powershell
+# ✅ Safe on new blank docs — use Selection (no collapse needed)
+$sel = $word.Selection
+$sel.Style = "Heading 1"
+$sel.TypeText("Summary")
+$sel.TypeParagraph()
+$sel.Style = "Normal"
+$sel.TypeText("Body text here.")
+$sel.TypeParagraph()
+```
+
+**On an EXISTING document** with content, `$doc.Content` works because the
+Range has content to apply the style to:
+
 ```powershell
 $range = $doc.Content
 $range.Collapse(0)                      # 0 = wdCollapseEnd
-$range.Style = "Heading 1"
-$range.InsertAfter("Summary`r")
+$range.InsertAfter("Summary`r")         # insert text first
+$range.Paragraphs.Item(1).Range.Style = "Heading 1"  # style the paragraph that now exists
 $range.Collapse(0)
-$range.Style = "Normal"
 $range.InsertAfter("Body text here.`r")
 ```
+
+> **Why:** On a blank doc, `Collapse(0)` reduces the Range to a zero-width point.
+> Setting `.Style` on a collapsed Range throws `HRESULT E_FAIL`. `Selection`
+> auto-expands when you type into it, so it works reliably in both cases.
 
 ### Insert a table from data
 ```powershell
@@ -222,13 +244,14 @@ for ($r = 0; $r -lt $data.Count; $r++) {
 ### Save / Save As
 ```powershell
 $doc.Save()                                   # save in place
-$doc.SaveAs([ref]"C:\out\copy.docx", [ref]16) # 16 = wdFormatDocumentDefault
-$doc.SaveAs([ref]"C:\out\copy.pdf",  [ref]17) # 17 = wdFormatPDF
+$doc.SaveAs2($docxPath, 16)                   # 16 = wdFormatDocumentDefault
+$doc.SaveAs2($pdfPath,  17)                   # 17 = wdFormatPDF
 ```
 
-> Older Word builds require `[ref]` for `SaveAs` arguments (as above). On
-> modern Word `$doc.SaveAs2($path, $format)` also works. Prefer the `[ref]`
-> form for compatibility.
+> **Prefer `SaveAs2` over `SaveAs([ref]...)`.** The `[ref]` pattern with
+> `SaveAs` can throw `ArgumentException` ("值不在预期的范围内") when the path
+> contains non-ASCII characters (Chinese/CJK). `SaveAs2` accepts plain
+> `[string]` arguments and works reliably with any path.
 
 ## Ready-to-use scripts
 
@@ -253,3 +276,5 @@ All scripts implement the full open/try/finally/release lifecycle. Run any with
 | Expecting it to work in CI | Random COM errors / no output | Use a library (see overview) |
 | Non-ASCII script saved UTF-8 **without** BOM | Parser error at the line with Chinese/CJK text; `exit code 1` under PS 5.1 | Save `.ps1` as **UTF-8 with BOM** (see Script File Encoding) |
 | `$word.Quit()` throws RPC failure `0x800706BE` in `finally` | Doc still saved fine, but script exits non-zero | Wrap `Quit()` in its own `try{}catch{}`; confirm no orphan `WINWORD.EXE` |
+| `$range.Style = "Heading 1"` on blank new doc | `HRESULT E_FAIL` — collapsed Range has no paragraph to style | Use `$word.Selection` + `TypeText()` on new docs; or insert text first then style via `$range.Paragraphs.Item(1).Range.Style` |
+| `$doc.SaveAs([ref]$path, [ref]16)` with Chinese path | `ArgumentException` ("值不在预期的范围内") — `[ref]` type coercion unstable with non-ASCII | Use `$doc.SaveAs2($path, 16)` (accepts plain `[string]`) |
