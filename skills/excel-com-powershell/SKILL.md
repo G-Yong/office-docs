@@ -151,6 +151,17 @@ $range.Value2 = $arr     # single COM round-trip — fast
 
 > Writing cell-by-cell in a loop is 100x+ slower. Always batch via a range.
 
+> **CRITICAL — PowerShell `[,]` index parsing pitfall:** In `$arr[$r + 1, 0]`,
+> the `,` is the array-construction operator, so PowerShell parses this as
+> `$r + (1, 0)` — array concatenation — and throws
+> `[System.Object[]] 不包含名为 "op_Addition" 的方法`. **Always** compute
+> the row index into a separate variable first:
+> ```powershell
+> $ri = $r + 1                          # compute once
+> $arr[$ri, 0] = $ri                    # then index with a plain integer
+> ```
+> This applies to ALL `object[,]` indexing in PowerShell, not just Excel scripts.
+
 ### Formulas + recalculation
 ```powershell
 $ws.Cells.Item(4, 2).Formula = "=SUM(B2:B3)"
@@ -193,3 +204,5 @@ All scripts implement the full open/try/finally/release lifecycle.
 | Not releasing COM | `EXCEL.EXE` leaks, file locked | `finally` + `ReleaseComObject` + GC |
 | Running in CI/service | Flaky COM errors | Use `openpyxl`/`ClosedXML` instead |
 | Reading formula expecting value | Got `=SUM(...)` string | Use `.Value2` after `$excel.Calculate()` |
+| `$arr[$r+1,0]` with computed index | `op_Addition` / array-concat error | `$ri=$r+1; $arr[$ri,0]` — compute index into a variable first |
+| Non-ASCII `.ps1` saved UTF-8 **without** BOM | Parser error on lines with Chinese/CJK text under PS 5.1 | Save `.ps1` as **UTF-8 with BOM** — see `office-docs:word-com-powershell` → Script File Encoding |
