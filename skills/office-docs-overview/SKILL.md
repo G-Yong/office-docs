@@ -1,6 +1,6 @@
 ---
 name: office-docs-overview
-description: Use when an agent needs to read, write, edit, or generate Microsoft Office files (Word .docx/.doc, Excel .xlsx/.xls) on Windows - routes to the right COM automation skill and decides COM vs library-based approaches
+description: Use when an agent needs to read, write, edit, or generate Microsoft Office files (Word .docx/.doc, Excel .xlsx/.xls/.csv) on Windows - routes to the right COM automation skill and decides COM vs library-based approaches
 ---
 
 # Office Documents Overview

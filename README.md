@@ -60,30 +60,6 @@ Example:
 - An **interactive** desktop session (COM automation of Office is unsupported
   under Session 0 / service accounts)
 
-## Repository layout
-
-```
-office-docs/
-  .claude-plugin/
-    plugin.json          # Claude Code plugin manifest
-    marketplace.json     # marketplace entry
-  skills/
-    office-docs-overview/
-      SKILL.md
-      references/non-com-alternatives.md
-    word-com-powershell/
-      SKILL.md
-      scripts/*.ps1
-    excel-com-powershell/
-      SKILL.md
-      scripts/*.ps1
-    office-com-cleanup/
-      SKILL.md
-  AGENTS.md              # tells agents how to discover/use these skills
-  package.json
-  LICENSE
-```
-
 ## Using these skills
 
 ### With agents that support the skills/SKILL.md convention

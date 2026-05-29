@@ -47,30 +47,6 @@
 - Windows PowerShell 5.1 或 PowerShell 7+
 - **交互式**桌面会话（Session 0 / 服务账户下不支持 Office COM 自动化）
 
-## 仓库结构
-
-```
-office-docs/
-  .claude-plugin/
-    plugin.json          # Claude Code 插件清单
-    marketplace.json     # 市场入口
-  skills/
-    office-docs-overview/
-      SKILL.md
-      references/non-com-alternatives.md
-    word-com-powershell/
-      SKILL.md
-      scripts/*.ps1
-    excel-com-powershell/
-      SKILL.md
-      scripts/*.ps1
-    office-com-cleanup/
-      SKILL.md
-  AGENTS.md              # 指导 AI 助手如何发现和使用这些技能
-  package.json
-  LICENSE
-```
-
 ## 如何使用这些技能
 
 ### 配合支持 skills/SKILL.md 约定的 AI 助手
