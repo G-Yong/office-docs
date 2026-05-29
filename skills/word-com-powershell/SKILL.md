@@ -113,11 +113,11 @@ try {
     $doc.Save()
 }
 finally {
-    if ($doc)  { $doc.Close($false) }   # $false = don't save again
-    if ($word) { $word.Quit() }
+    try { if ($doc)  { $doc.Close($false) } } catch { }   # $false = don't save again
+    try { if ($word) { $word.Quit() } } catch { }
     # Release refs + GC — see office-docs:office-com-cleanup
     foreach ($o in @($doc, $word)) {
-        if ($o) { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($o) }
+        if ($o) { try { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($o) } catch { } }
     }
     [GC]::Collect(); [GC]::WaitForPendingFinalizers()
 }
@@ -136,12 +136,15 @@ finally {
 | Append paragraph | `$doc.Content.InsertParagraphAfter()` |
 | Table count | `$doc.Tables.Count` |
 | Cell text | `$doc.Tables.Item(1).Cell($row,$col).Range.Text` |
-| Save as docx | `$doc.SaveAs([ref]$path, [ref]16)` |
-| Export PDF | `$doc.SaveAs([ref]$pdfPath, [ref]17)` |
+| Save as docx | `$doc.SaveAs2($path, 16)` |
+| Export PDF | `$doc.SaveAs2($pdfPath, 17)` |
 | Close (no save) | `$doc.Close($false)` |
 
 > Cell text from Word ends with a `\r\a` (bell) marker. Strip it:
 > `$cell.Range.Text -replace "[\r\a]", ""`.
+>
+> **When writing to a cell,** `.Range.Text` only accepts `[string]`. PowerShell
+> integers cause `InvalidCastException`. Always cast: `$cell.Range.Text = [string]$value`.
 
 ## Reading
 

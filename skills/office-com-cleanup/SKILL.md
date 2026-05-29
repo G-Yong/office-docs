@@ -51,12 +51,14 @@ try {
 }
 finally {
     # 1. Close documents/workbooks WITHOUT prompting.
-    if ($doc) { $doc.Close($false) }
-    # 2. Quit the application.
-    if ($app) { $app.Quit() }
+    try { if ($doc) { $doc.Close($false) } } catch { }
+    # 2. Quit the application. (Wrap in try/catch: Quit() can throw RPC
+    #    errors like 0x800706BA even after a successful Save, especially
+    #    under $ErrorActionPreference='Stop'.)
+    try { if ($app) { $app.Quit() } } catch { }
     # 3. Release EVERY COM reference you held (children first).
     foreach ($o in @($doc, $app)) {
-        if ($o) { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($o) }
+        if ($o) { try { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($o) } catch { } }
     }
     # 4. Drop the variables and force finalization.
     $doc = $null; $app = $null
@@ -149,3 +151,4 @@ function Release-Com {
 | `Stop-Process` as teardown | Corrupts files, kills user's docs | Use proper release; kill only orphans |
 | No `GC.Collect` | Process exits late or never | `GC.Collect()` + `WaitForPendingFinalizers()` |
 | `DisplayAlerts` left on | Script hangs on hidden dialog | Disable before work |
+| `Close()` / `Quit()` unguarded | RPC error (0x800706BA) kills script when `$ErrorActionPreference='Stop'` | Wrap both in `try/catch` |
