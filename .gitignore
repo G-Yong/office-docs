@@ -1,0 +1,22 @@
+# Office temporary / lock files
+~$*.docx
+~$*.xlsx
+~$*.doc
+~$*.xls
+*.tmp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Node
+node_modules/
+
+# Test output / scratch
+/tmp/
+/scratch/
+*.log

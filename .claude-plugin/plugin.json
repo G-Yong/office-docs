@@ -1,0 +1,23 @@
+{
+  "name": "office-docs",
+  "description": "Skills for reading and writing Microsoft Office files (Word .docx, Excel .xlsx) from coding agents, primarily via PowerShell COM automation on Windows",
+  "version": "0.1.0",
+  "author": {
+    "name": "office-docs contributors"
+  },
+  "homepage": "https://github.com/G-Yong/office-docs",
+  "repository": "https://github.com/G-Yong/office-docs",
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "office",
+    "word",
+    "excel",
+    "docx",
+    "xlsx",
+    "powershell",
+    "com",
+    "automation",
+    "windows"
+  ]
+}

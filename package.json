@@ -1,0 +1,17 @@
+{
+  "name": "office-docs",
+  "version": "0.1.0",
+  "description": "Skills for reading and writing Microsoft Office files (Word .docx, Excel .xlsx) via PowerShell COM automation",
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "office",
+    "word",
+    "excel",
+    "docx",
+    "xlsx",
+    "powershell",
+    "com"
+  ]
+}
