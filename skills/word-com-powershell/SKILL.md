@@ -55,6 +55,45 @@ $wdFormatPDF = 17
 $wdReplaceAll = 2
 ```
 
+## Script File Encoding (CRITICAL for non-ASCII / Chinese / CJK)
+
+**Windows PowerShell 5.1 decodes a `.ps1` file that has NO byte-order mark
+(BOM) using the system ANSI codepage** (e.g. CP936/GBK on Chinese Windows,
+CP932 on Japanese), **not UTF-8.** If your script contains non-ASCII literals
+— Chinese titles, table headers, JSON property names like `$s.代码` — and is
+saved as UTF-8 *without* a BOM, PS 5.1 mis-decodes those bytes and the script
+fails to even parse, with a misleading error like:
+
+```
+所在位置 ...\script.ps1:37 字符: 55   (parser error / unexpected token)
+Command exited with code 1
+```
+
+Most editors and file-writing tools save UTF-8 **without** a BOM by default, so
+this bites silently.
+
+**Rule:** Any `.ps1` containing non-ASCII characters that must run under Windows
+PowerShell 5.1 MUST be saved as **UTF-8 with BOM** (or UTF-16 LE). Verify the
+first three bytes are `239,187,191` (`EF BB BF`).
+
+After writing a script with a tool that omits the BOM, re-encode it:
+
+```powershell
+$p = 'C:\path\script.ps1'
+$txt = [System.IO.File]::ReadAllText($p, [System.Text.UTF8Encoding]::new($false))
+[System.IO.File]::WriteAllText($p, $txt, [System.Text.UTF8Encoding]::new($true))  # $true = emit BOM
+# verify:
+([System.IO.File]::ReadAllBytes($p))[0..2]   # -> 239 187 191
+```
+
+The same applies to data files you read with `Get-Content`: keep them UTF-8
+*with* BOM, or pass `-Encoding UTF8` explicitly (a BOM-less UTF-8 data file read
+without `-Encoding UTF8` is also mis-decoded as ANSI).
+
+> PowerShell 7+ (`pwsh`) defaults to UTF-8 and does not need the BOM, but the
+> system `powershell.exe` (5.1) is what most Windows boxes invoke — assume 5.1
+> and add the BOM.
+
 ## Setup and Teardown (always)
 
 ```powershell
@@ -209,3 +248,5 @@ All scripts implement the full open/try/finally/release lifecycle. Run any with
 | `Close()` without arg after edits | Hidden "save changes?" prompt | `$doc.Close($false)` or `$doc.Save()` first |
 | Reading cell text raw | Trailing `\r\a` junk | `-replace "[\r\a]", ""` |
 | Expecting it to work in CI | Random COM errors / no output | Use a library (see overview) |
+| Non-ASCII script saved UTF-8 **without** BOM | Parser error at the line with Chinese/CJK text; `exit code 1` under PS 5.1 | Save `.ps1` as **UTF-8 with BOM** (see Script File Encoding) |
+| `$word.Quit()` throws RPC failure `0x800706BE` in `finally` | Doc still saved fine, but script exits non-zero | Wrap `Quit()` in its own `try{}catch{}`; confirm no orphan `WINWORD.EXE` |

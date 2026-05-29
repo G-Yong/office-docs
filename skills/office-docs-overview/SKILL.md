@@ -103,3 +103,8 @@ finally {
   files, memory growth. Read `office-docs:office-com-cleanup`.
 - **Running in CI / as a service** → use a library instead (see alternatives).
 - **Assuming 0-based indexes** → Office COM collections are **1-based**.
+- **Non-ASCII `.ps1` saved as UTF-8 without a BOM** → Windows PowerShell 5.1
+  decodes BOM-less scripts as the ANSI codepage (CP936/GBK, CP932, …), so
+  Chinese/CJK literals corrupt and the script fails to parse (`exit code 1`).
+  Save any script (or data file) containing non-ASCII text as **UTF-8 with
+  BOM**. See `office-docs:word-com-powershell` → "Script File Encoding".
