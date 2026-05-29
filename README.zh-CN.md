@@ -59,12 +59,21 @@
 
 ### Claude Code（插件）
 
-本仓库通过 `.claude-plugin/` 打包为 Claude Code 插件。从你的 fork 注册为 marketplace 后安装：
+本仓库通过 `.claude-plugin/` 打包为 Claude Code 插件。安装步骤：
 
-```bash
-/plugin marketplace add G-Yong/office-docs
-/plugin install office-docs@office-docs
-```
+1. **注册本仓库为插件市场**（marketplace）：
+
+   ```bash
+   /plugin marketplace add G-Yong/office-docs
+   ```
+
+2. **从该市场安装插件**：
+
+   ```bash
+   /plugin install office-docs@office-docs
+   ```
+
+> 如果你想自行定制插件内容，可以先 [Fork 本仓库](https://github.com/G-Yong/office-docs/fork)，再将第一步的仓库名替换为 `<你的用户名>/office-docs`。
 
 ### WPS 兼容性说明
 

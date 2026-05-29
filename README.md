@@ -74,13 +74,21 @@ its `description` trigger matches the task. See [AGENTS.md](AGENTS.md).
 
 ### Claude Code (plugin)
 
-This repo is packaged as a Claude Code plugin via `.claude-plugin/`. Register it
-as a marketplace from your fork and install:
+This repo is packaged as a Claude Code plugin via `.claude-plugin/`. Installation:
 
-```bash
-/plugin marketplace add G-Yong/office-docs
-/plugin install office-docs@office-docs
-```
+1. **Register this repo as a marketplace:**
+
+   ```bash
+   /plugin marketplace add G-Yong/office-docs
+   ```
+
+2. **Install the plugin from that marketplace:**
+
+   ```bash
+   /plugin install office-docs@office-docs
+   ```
+
+> If you want to customize the plugin, [fork this repo](https://github.com/G-Yong/office-docs/fork) first and replace the repo name in step 1 with `<your-username>/office-docs`.
 
 ### WPS compatibility
 
