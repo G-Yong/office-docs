@@ -1,5 +1,7 @@
 # office-docs
 
+**English** | [中文](README.zh-CN.md)
+
 A skills library that teaches coding agents how to **read and write Microsoft
 Office files** — Word (`.docx`/`.doc`) and Excel (`.xlsx`/`.xls`/`.csv`) — on
 Windows, primarily by driving the installed Office applications through
