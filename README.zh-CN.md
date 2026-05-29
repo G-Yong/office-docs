@@ -17,7 +17,7 @@
 | [`office-docs-overview`](skills/office-docs-overview/SKILL.md) | 如何选择处理 Office 文件的方式；COM 还是类库；安全前提 |
 | [`word-com-powershell`](skills/word-com-powershell/SKILL.md) | 读取/写入/编辑/生成 Word 文档，或导出为 PDF |
 | [`excel-com-powershell`](skills/excel-com-powershell/SKILL.md) | 读写单元格、区域、公式、工作表；Excel 转 PDF |
-| [`office-com-cleanup`](skills/office-com-cleanup/SKILL.md) | 处理泄漏的 `WINWORD.EXE`/`EXCEL.EXE` 进程、被锁文件、脚本挂起、COM 释放模式 |
+| [`office-com-cleanup`](skills/office-com-cleanup/SKILL.md) | 处理泄漏的 `WINWORD.EXE`/`EXCEL.EXE`（或 WPS 下的 `wps.exe`/`et.exe`）进程、被锁文件、脚本挂起、COM 释放模式 |
 
 ### 附带脚本
 
@@ -43,7 +43,11 @@
 
 ## 环境要求
 
-- 安装了 Microsoft Office（Word/Excel）的 Windows 系统
+- 安装了 Microsoft Office（Word/Excel）**或 WPS Office** 的 Windows 系统。
+  WPS 会将自身注册到 Microsoft 的 COM ProgID（`Word.Application` /
+  `Excel.Application`）下，因此同样的脚本也能运行——但 WPS 只实现了 COM API
+  的一个**子集**，且其后台进程是 `wps.exe` / `et.exe` 而非
+  `WINWORD.EXE` / `EXCEL.EXE`。详见 [WPS 兼容性说明](#wps-兼容性说明)。
 - Windows PowerShell 5.1 或 PowerShell 7+
 - **交互式**桌面会话（Session 0 / 服务账户下不支持 Office COM 自动化）
 
@@ -62,7 +66,29 @@
 /plugin install office-docs@office-docs
 ```
 
-### 手动使用
+###WPS 兼容性说明
+
+[WPS Office](https://www.wps.com)（金山）会将自身作为 COM 兼容层注册到
+Microsoft 的 ProgID `Word.Application` 和 `Excel.Application` 下。当系统只安装
+了 WPS 而没有 Microsoft Office 时，本仓库的脚本实际操控的是 WPS Writer /
+Spreadsheets，而非 Word / Excel。
+
+**可正常使用的功能：** 基本的打开/读取/写入、`SaveAs`、PDF 导出、大部分常用属性和方法。
+
+**注意事项：**
+- WPS 只实现了 Office COM API 的一个**子集**——部分高级成员、枚举值和格式功能可能缺失。
+- 后台进程是 `wps.exe`（文字）、`et.exe`（表格）和 `wpp.exe`（演示），而非
+  `WINWORD.EXE` / `EXCEL.EXE`。仅检查后者会漏掉 WPS 的残留进程。
+- WPS 也提供了自己的原生 ProgID：`KWPS.Application`、`KET.Application`。
+
+确认当前操控的是哪个应用：
+
+```powershell
+$app = New-Object -ComObject Word.Application
+$app.Path   # 路径含 Kingsoft\WPS Office\... → 说明是 WPS
+```
+
+##  手动使用
 
 技能文件其实就是 Markdown 文档。打开对应的 `SKILL.md`，参照其中的快速参考和模式说明直接运行附带脚本即可。
 

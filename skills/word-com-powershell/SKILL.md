@@ -19,6 +19,13 @@ in a `finally` block or you leak `WINWORD.EXE` processes and lock files.
 release pattern. Read `office-docs:office-docs-overview` for when COM is the
 wrong choice (CI, no Office, bulk data).
 
+> **WPS note:** On a machine with WPS Office (and no Microsoft Office),
+> `New-Object -ComObject Word.Application` may launch **WPS Writer** instead —
+> WPS registers under the Microsoft ProgIDs. Check `$word.Path` to confirm. WPS
+> covers common automation but implements only a subset of the API, and its
+> hidden process is **`wps.exe`**, not `WINWORD.EXE`. See
+> `office-docs:office-docs-overview`.
+
 ## When to Use
 
 - Extract text or tables from `.docx`/`.doc`

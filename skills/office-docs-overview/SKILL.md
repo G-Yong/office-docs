@@ -73,6 +73,32 @@ installed. See `references/non-com-alternatives.md`.
 4. **Use absolute paths.** Office resolves relative paths against its own
    working directory (often the Documents folder), not the shell's CWD.
 
+## WPS Office may answer the Microsoft ProgIDs
+
+On machines with **WPS Office** (Kingsoft) installed but **not** Microsoft
+Office, `New-Object -ComObject Word.Application` / `Excel.Application` can still
+succeed — WPS registers itself as a compatibility shim under the Microsoft
+ProgIDs. You are then driving **WPS Writer / Spreadsheets**, not Word/Excel.
+
+How to detect what you actually got:
+
+```powershell
+$app = New-Object -ComObject Word.Application   # or Excel.Application
+$app.Name      # "Microsoft Word" even on WPS (reported for compatibility)
+$app.Version   # WPS commonly reports 12.0
+$app.Path      # the real giveaway, e.g. ...\Kingsoft\WPS Office\...\office6
+```
+
+Implications when it is really WPS:
+- WPS implements a **subset** of the Office COM API. Basic open/read/write,
+  `SaveAs`, and PDF export usually work; advanced members, some enum values,
+  and exotic formatting may be missing or behave differently.
+- The hidden process is **`wps.exe` / `et.exe` / `wpp.exe`**, NOT
+  `WINWORD.EXE` / `EXCEL.EXE`. Adjust any process/orphan checks accordingly —
+  see `office-docs:office-com-cleanup`.
+- WPS also exposes its own native ProgIDs (`KWPS.Application`,
+  `KET.Application`, `Ket.Application`) if you want to target it explicitly.
+
 ## Universal Safety Pattern
 
 Every COM script must follow this shape:

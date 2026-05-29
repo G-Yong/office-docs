@@ -116,11 +116,29 @@ the user. A targeted approach:
 
 ```powershell
 # List Office processes so the user can confirm before killing anything.
-Get-Process -Name WINWORD, EXCEL -ErrorAction SilentlyContinue |
+# Include the WPS process names too — see the WPS note below.
+Get-Process -Name WINWORD, EXCEL, wps, et, wpp -ErrorAction SilentlyContinue |
     Select-Object Id, ProcessName, MainWindowTitle, StartTime
 ```
 
 Only kill specific PIDs you are certain are orphans from your automation.
+
+## WPS Office uses different process names
+
+If `New-Object -ComObject Word.Application` / `Excel.Application` is actually
+serviced by **WPS Office** (it registers itself under the Microsoft ProgIDs —
+see `office-docs:office-docs-overview`), the hidden process is **not**
+`WINWORD.EXE` / `EXCEL.EXE`:
+
+| Microsoft app | MS process | WPS equivalent |
+|---------------|-----------|----------------|
+| Word          | `WINWORD.EXE` | `wps.exe` |
+| Excel         | `EXCEL.EXE`   | `et.exe`  |
+| PowerPoint    | `POWERPNT.EXE`| `wpp.exe` |
+
+The `Quit()` + `ReleaseComObject` + `GC` teardown is identical regardless of
+which engine answered — but any leak detection or orphan cleanup that greps for
+`WINWORD`/`EXCEL` will silently miss WPS leaks. Check for the WPS names too.
 
 ## Reusable release helper
 
@@ -152,3 +170,4 @@ function Release-Com {
 | No `GC.Collect` | Process exits late or never | `GC.Collect()` + `WaitForPendingFinalizers()` |
 | `DisplayAlerts` left on | Script hangs on hidden dialog | Disable before work |
 | `Close()` / `Quit()` unguarded | RPC error (0x800706BA) kills script when `$ErrorActionPreference='Stop'` | Wrap both in `try/catch` |
+| Only checking `WINWORD`/`EXCEL` | WPS leaks go undetected | Also check `wps.exe`/`et.exe`/`wpp.exe` |

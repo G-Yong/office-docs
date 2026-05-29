@@ -20,6 +20,13 @@ COM, you MUST quit and release every reference in `finally` or you leak
 pattern. Read `office-docs:office-docs-overview` for when to prefer a library
 (Excel COM is especially unreliable under service accounts / Session 0).
 
+> **WPS note:** On a machine with WPS Office (and no Microsoft Office),
+> `New-Object -ComObject Excel.Application` may launch **WPS Spreadsheets**
+> instead — WPS registers under the Microsoft ProgIDs. Check `$excel.Path` to
+> confirm. WPS covers common automation but implements only a subset of the
+> API, and its hidden process is **`et.exe`**, not `EXCEL.EXE`. See
+> `office-docs:office-docs-overview`.
+
 ## When to Use
 
 - Read values, formulas, or whole ranges from a workbook

@@ -27,7 +27,7 @@ to library-based alternatives.
 | [`office-docs-overview`](skills/office-docs-overview/SKILL.md) | Deciding how to handle an Office file; COM vs library; safety prerequisites |
 | [`word-com-powershell`](skills/word-com-powershell/SKILL.md) | Reading/writing/editing/generating Word documents or exporting to PDF |
 | [`excel-com-powershell`](skills/excel-com-powershell/SKILL.md) | Reading/writing cells, ranges, formulas, sheets; Excel → PDF |
-| [`office-com-cleanup`](skills/office-com-cleanup/SKILL.md) | Leaked `WINWORD.EXE`/`EXCEL.EXE`, locked files, hung scripts, COM release pattern |
+| [`office-com-cleanup`](skills/office-com-cleanup/SKILL.md) | Leaked `WINWORD.EXE`/`EXCEL.EXE` (or `wps.exe`/`et.exe` on WPS), locked files, hung scripts, COM release pattern |
 
 ### Bundled scripts
 
@@ -55,7 +55,11 @@ Example:
 
 ## Requirements
 
-- Windows with Microsoft Office (Word/Excel) installed
+- Windows with Microsoft Office (Word/Excel) **or WPS Office** installed.
+  WPS registers itself under the Microsoft COM ProgIDs (`Word.Application` /
+  `Excel.Application`), so the same scripts work — but WPS covers a *subset*
+  of the API, and its hidden processes are `wps.exe` / `et.exe`, not
+  `WINWORD.EXE` / `EXCEL.EXE`. See [WPS compatibility](#wps-compatibility).
 - Windows PowerShell 5.1 or PowerShell 7+
 - An **interactive** desktop session (COM automation of Office is unsupported
   under Session 0 / service accounts)
@@ -79,7 +83,32 @@ as a marketplace from your fork and install:
 ```
 
 ### Manually
+WPS compatibility
 
+[WPS Office](https://www.wps.com) (Kingsoft) registers itself as a COM
+compatibility shim under the Microsoft ProgIDs `Word.Application` and
+`Excel.Application`. When WPS is installed **without** Microsoft Office, the
+scripts in this repo drive WPS Writer / Spreadsheets instead of Word / Excel.
+
+**What works:** basic open/read/write, `SaveAs`, PDF export, most common
+properties and methods.
+
+**Caveats:**
+- WPS implements a **subset** of the Office COM API — some advanced members,
+  enum values, and formatting features may be missing.
+- The hidden processes are `wps.exe` (Writer), `et.exe` (Spreadsheets), and
+  `wpp.exe` (Presentation). Process checks that only look for `WINWORD.EXE` /
+  `EXCEL.EXE` will miss WPS leaks.
+- WPS also exposes its own native ProgIDs: `KWPS.Application`, `KET.Application`.
+
+To confirm which application you are driving:
+
+```powershell
+$app = New-Object -ComObject Word.Application
+$app.Path   # Kingsoft\WPS Office\... → it's WPS
+```
+
+## 
 The skills are just Markdown. Open the relevant `SKILL.md`, follow its Quick
 Reference and patterns, and run the bundled scripts directly.
 
