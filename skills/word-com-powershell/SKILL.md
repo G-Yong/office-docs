@@ -55,6 +55,34 @@ $wdFormatPDF = 17
 $wdReplaceAll = 2
 ```
 
+### wdBuiltinStyle constants (for `$sel.Style` / `.Range.Style`)
+
+Style names passed as strings (e.g. `"Heading 1"`, `"Normal"`) are
+**locale-sensitive**: they vary between English, Chinese, and other Office
+installations, causing `E_FAIL` on non-English Word. Use the negative `WdBuiltinStyle`
+integers instead — they work on every locale:
+
+| Name | Value | Meaning |
+|------|-------|---------|
+| `wdStyleNormal` | `-1` | Normal (body text) |
+| `wdStyleHeading1` | `-2` | Heading 1 |
+| `wdStyleHeading2` | `-3` | Heading 2 |
+| `wdStyleHeading3` | `-4` | Heading 3 |
+| `wdStyleDefaultParagraphFont` | `-66` | Default Paragraph Font |
+| `wdStyleTableGrid` | `-155` | Table Grid |
+
+> **IMPORTANT:** `Styles.Item()` with an integer uses these `WdBuiltinStyle` enum
+> values. Passing `0` or any positive integer that is not a valid enum member
+> throws `E_ACCESSDENIED`. Always use the negative constants above.
+
+```powershell
+# ✅ Locale-safe style assignment
+$sel.Style = $doc.Styles.Item(-2)   # Heading 1 on any locale
+$sel.TypeText("My Title")
+$sel.TypeParagraph()
+$sel.Style = $doc.Styles.Item(-1)   # Normal
+```
+
 ## Script File Encoding (CRITICAL for non-ASCII / Chinese / CJK)
 
 **Windows PowerShell 5.1 decodes a `.ps1` file that has NO byte-order mark
@@ -197,15 +225,19 @@ collapsed Range throws `HRESULT E_FAIL`. Use `$word.Selection` or font
 properties instead:
 
 ```powershell
-# ✅ Safe on new blank docs — use Selection (no collapse needed)
+# ✅ Safe on new blank docs — use Selection with locale-safe numeric style constants
 $sel = $word.Selection
-$sel.Style = "Heading 1"
+$sel.Style = $doc.Styles.Item(-2)   # -2 = wdStyleHeading1 (works on any locale)
 $sel.TypeText("Summary")
 $sel.TypeParagraph()
-$sel.Style = "Normal"
+$sel.Style = $doc.Styles.Item(-1)   # -1 = wdStyleNormal
 $sel.TypeText("Body text here.")
 $sel.TypeParagraph()
 ```
+
+> String style names like `"Heading 1"` or `"Normal"` are locale-sensitive and
+> will fail (E_FAIL / item not found) on non-English Office. Always prefer
+> negative `WdBuiltinStyle` integer constants — see the Critical Constants section.
 
 **On an EXISTING document** with content, `$doc.Content` works because the
 Range has content to apply the style to:
@@ -278,3 +310,5 @@ All scripts implement the full open/try/finally/release lifecycle. Run any with
 | `$word.Quit()` throws RPC failure `0x800706BE` in `finally` | Doc still saved fine, but script exits non-zero | Wrap `Quit()` in its own `try{}catch{}`; confirm no orphan `WINWORD.EXE` |
 | `$range.Style = "Heading 1"` on blank new doc | `HRESULT E_FAIL` — collapsed Range has no paragraph to style | Use `$word.Selection` + `TypeText()` on new docs; or insert text first then style via `$range.Paragraphs.Item(1).Range.Style` |
 | `$doc.SaveAs([ref]$path, [ref]16)` with Chinese path | `ArgumentException` ("值不在预期的范围内") — `[ref]` type coercion unstable with non-ASCII | Use `$doc.SaveAs2($path, 16)` (accepts plain `[string]`) |
+| `$sel.Style = "Heading 1"` on non-English Office | `E_FAIL` / item not found — style names are locale-specific strings | Use `WdBuiltinStyle` integer: `$doc.Styles.Item(-2)` for Heading 1, `Item(-1)` for Normal |
+| `$doc.Styles.Item(0)` or any non-negative integer | `E_ACCESSDENIED` — `0` / positive indices don't map to valid built-in styles | All built-in styles use **negative** enum values (see Critical Constants → wdBuiltinStyle) |

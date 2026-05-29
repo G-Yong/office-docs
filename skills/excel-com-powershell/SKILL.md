@@ -162,6 +162,18 @@ $range.Value2 = $arr     # single COM round-trip — fast
 > ```
 > This applies to ALL `object[,]` indexing in PowerShell, not just Excel scripts.
 
+> **CRITICAL — Mixed-type PS arrays cause `InvalidCastException`:** When writing
+> cell-by-cell from a PowerShell `object[]` that contains mixed types (e.g.
+> `@(1, "600519", "贵州茅台", 1682.00, ...)`), COM interop may fail to coerce
+> `Int32` or `Double` elements to the internal Variant type, throwing
+> `InvalidCastException`. Fix: use an all-string array, or cast explicitly at
+> the write site:
+> ```powershell
+> $ws.Cells.Item($r, $c).Value2 = [string]$row[$c - 1]   # always safe
+> ```
+> This avoids the interop cast failure while still letting Excel re-parse numeric
+> strings into numbers for formatting/calculation.
+
 > **CRITICAL — Excel auto-interprets string values:** When writing strings via
 > `Range.Value2`, Excel automatically converts values that look like numbers,
 > dates, or percentages. `"002594"` becomes `2594` (drops leading zeros);
