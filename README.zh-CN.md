@@ -66,7 +66,7 @@
 /plugin install office-docs@office-docs
 ```
 
-###WPS 兼容性说明
+### WPS 兼容性说明
 
 [WPS Office](https://www.wps.com)（金山）会将自身作为 COM 兼容层注册到
 Microsoft 的 ProgID `Word.Application` 和 `Excel.Application` 下。当系统只安装

@@ -82,8 +82,7 @@ as a marketplace from your fork and install:
 /plugin install office-docs@office-docs
 ```
 
-### Manually
-WPS compatibility
+### WPS compatibility
 
 [WPS Office](https://www.wps.com) (Kingsoft) registers itself as a COM
 compatibility shim under the Microsoft ProgIDs `Word.Application` and
@@ -108,7 +107,7 @@ $app = New-Object -ComObject Word.Application
 $app.Path   # Kingsoft\WPS Office\... → it's WPS
 ```
 
-## 
+## Manually
 The skills are just Markdown. Open the relevant `SKILL.md`, follow its Quick
 Reference and patterns, and run the bundled scripts directly.
 
