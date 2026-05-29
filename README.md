@@ -105,20 +105,6 @@ as a marketplace from your fork and install:
 The skills are just Markdown. Open the relevant `SKILL.md`, follow its Quick
 Reference and patterns, and run the bundled scripts directly.
 
-## Publishing to GitHub
-
-1. Create a new GitHub repository.
-2. Commit and push:
-
-   ```powershell
-   git init
-   git add .
-   git commit -m "Initial office-docs skills library"
-   git branch -M main
-   git remote add origin https://github.com/G-Yong/office-docs.git
-   git push -u origin main
-   ```
-
 ## Safety notes
 
 - Always use **absolute paths** with COM — Office resolves relative paths
