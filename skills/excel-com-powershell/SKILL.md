@@ -162,6 +162,23 @@ $range.Value2 = $arr     # single COM round-trip — fast
 > ```
 > This applies to ALL `object[,]` indexing in PowerShell, not just Excel scripts.
 
+> **CRITICAL — Excel auto-interprets string values:** When writing strings via
+> `Range.Value2`, Excel automatically converts values that look like numbers,
+> dates, or percentages. `"002594"` becomes `2594` (drops leading zeros);
+> `"+0.93%"` becomes `0.0093` (parsed as percentage). To preserve exact text:
+> ```powershell
+> # 1. Prefix with apostrophe when building the array (forces text storage)
+> $arr[$r, $c] = "'" + $code    # "'002594" stored as text, leading zeros kept
+>
+> # 2. Also set NumberFormat to '@' (Text) on the target column range
+> $ws.Range($ws.Cells(2, 2), $ws.Cells($n, 2)).NumberFormat = '@'
+> ```
+> Both steps are recommended: the apostrophe ensures the raw value is stored as
+> text at write time, and the `NumberFormat = '@'` prevents Excel from
+> re-interpreting the value if a user double-clicks the cell later. This
+> pattern is essential for stock codes, phone numbers, ID numbers, and any
+> numeric-looking string that must not lose leading zeros or formatting.
+
 ### Formulas + recalculation
 ```powershell
 $ws.Cells.Item(4, 2).Formula = "=SUM(B2:B3)"
@@ -205,4 +222,5 @@ All scripts implement the full open/try/finally/release lifecycle.
 | Running in CI/service | Flaky COM errors | Use `openpyxl`/`ClosedXML` instead |
 | Reading formula expecting value | Got `=SUM(...)` string | Use `.Value2` after `$excel.Calculate()` |
 | `$arr[$r+1,0]` with computed index | `op_Addition` / array-concat error | `$ri=$r+1; $arr[$ri,0]` — compute index into a variable first |
+| Writing strings that look like numbers via `Value2` | Leading zeros dropped, `"+0.93%"` → `0.0093` | Prefix with `'` and set `NumberFormat = '@'` on the column |
 | Non-ASCII `.ps1` saved UTF-8 **without** BOM | Parser error on lines with Chinese/CJK text under PS 5.1 | Save `.ps1` as **UTF-8 with BOM** — see `office-docs:word-com-powershell` → Script File Encoding |
