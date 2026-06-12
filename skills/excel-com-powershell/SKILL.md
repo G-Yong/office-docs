@@ -213,6 +213,86 @@ $wb.SaveAs("C:\out\data.csv", 6)          # 6  = xlCSV (active sheet only)
 $ws.ExportAsFixedFormat(0, "C:\out\sheet.pdf")  # 0 = xlTypePDF
 ```
 
+## Common Pitfalls and Troubleshooting
+
+### `.ps1` file encoding — UTF-8 BOM required
+
+PowerShell requires **UTF-8 with BOM** for `.ps1` files containing non-ASCII
+characters (Chinese paths, headers with multi-byte chars, etc.). Without BOM,
+multi-byte characters are garbled at parse time — the file still runs but path
+strings become corrupted.
+
+```powershell
+# WRONG: Set-Content writes UTF-8 without BOM by default
+$script | Set-Content -Path $path -Encoding UTF8
+
+# RIGHT: Explicit BOM
+$utf8Bom = New-Object System.Text.UTF8Encoding $true
+[System.IO.File]::WriteAllText($scriptPath, $content, $utf8Bom)
+```
+
+Or from Python: `open(path, 'w', encoding='utf-8-sig')`.
+
+**Symptom:** `无法找到 "C:\...\纭欢鏃ュ織\..."` — garbled Chinese in file paths.
+
+### `-f` format operator with cell values
+
+Cell values may contain `{` or `}` characters (e.g. `[Yes/No]` parsed as format
+placeholder). PowerShell's `-f` operator will throw `FormatError`.
+
+```powershell
+# BROKEN: cell value "{some}" breaks -f
+"Col{0}: {1}" -f $c, $cellValue
+
+# FIX: use string concatenation
+"Col" + $c + ": " + $cellValue
+```
+
+### Variable interpolation with colons
+
+PowerShell interprets `$var:text` as a variable with drive/provider scope.
+Use `$()` subexpression to disambiguate:
+
+```powershell
+# BROKEN: "$hh:$mm:$ss" → InvalidVariableReferenceWithDrive
+# FIX:
+$ts = "$($hh):$($mm):$($ss)"
+```
+
+### Output file locked by orphan process
+
+If a previous run leaked `EXCEL.EXE` or `et.exe` (WPS), the output file stays
+locked. Solutions:
+
+```powershell
+# Option 1: Kill known COM orphans before starting (last-resort recovery)
+Get-Process et, EXCEL -ErrorAction SilentlyContinue | Stop-Process -Force
+
+# Option 2: Use a unique output filename each run
+$csv = Join-Path $PSScriptRoot "output_$(Get-Date -Format 'yyyyMMdd_HHmmss').csv"
+```
+
+See `office-docs:office-com-cleanup` for the proper release pattern that
+prevents this.
+
+### Avoid long inline commands in VS Code terminal
+
+VS Code terminal may "simplify" long one-liners internally, which can corrupt
+array indexing (`$data[$r, 2]` may return wrong values like the `"Time"` header
+string instead of row data). **Prefer `.ps1` script files** over inline commands
+longer than ~500 characters.
+
+### `$PSScriptRoot` for portable paths
+
+Always resolve paths relative to the script location rather than hardcoding:
+
+```powershell
+$xlsx = Join-Path $PSScriptRoot 'data.xlsx'
+```
+
+Or use `[Environment]::GetFolderPath('Desktop')` / `Resolve-Path` for
+user-profile-relative paths.
+
 ## Ready-to-use scripts
 
 - `scripts/Get-ExcelData.ps1` — read a sheet (or all sheets) to objects/CSV.

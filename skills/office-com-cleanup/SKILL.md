@@ -168,6 +168,7 @@ function Release-Com {
 | Long dotted chains | Silent intermediate leaks | Capture + release intermediates |
 | `Stop-Process` as teardown | Corrupts files, kills user's docs | Use proper release; kill only orphans |
 | No `GC.Collect` | Process exits late or never | `GC.Collect()` + `WaitForPendingFinalizers()` |
+| Orphan process locks output file | `IOException` on next run, file "in use by another process" | Kill orphans first, or use unique filenames; wrap `Quit()` in `try/catch` |
 | `DisplayAlerts` left on | Script hangs on hidden dialog | Disable before work |
 | `Close()` / `Quit()` unguarded | RPC error (0x800706BA) kills script when `$ErrorActionPreference='Stop'` | Wrap both in `try/catch` |
 | Only checking `WINWORD`/`EXCEL` | WPS leaks go undetected | Also check `wps.exe`/`et.exe`/`wpp.exe` |
