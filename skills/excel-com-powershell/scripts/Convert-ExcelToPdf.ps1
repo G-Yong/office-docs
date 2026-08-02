@@ -32,13 +32,21 @@ param(
 $ErrorActionPreference = 'Stop'
 $xlTypePDF = 0
 
-$abs = [System.IO.Path]::GetFullPath((Join-Path (Get-Location) $Path))
+# Resolve a relative path against Get-Location; absolute paths pass through.
+# Join-Path alone is unsafe: on PS 5.1 it concatenates an absolute ChildPath
+# onto the base, producing "CWD\C:\abs\path" that GetFullPath rejects.
+function Resolve-AbsPath([string]$p) {
+    if ([System.IO.Path]::IsPathRooted($p)) { return $p }
+    [System.IO.Path]::GetFullPath((Join-Path (Get-Location) $p))
+}
+
+$abs = Resolve-AbsPath $Path
 if (-not (Test-Path -LiteralPath $abs)) { throw "File not found: $abs" }
 
 if (-not $OutPath) {
     $OutPath = [System.IO.Path]::ChangeExtension($abs, '.pdf')
 }
-$outAbs = [System.IO.Path]::GetFullPath((Join-Path (Get-Location) $OutPath))
+$outAbs = Resolve-AbsPath $OutPath
 
 $excel = $null
 $wb    = $null
@@ -60,10 +68,10 @@ try {
     Write-Output "Exported PDF -> $outAbs"
 }
 finally {
-    if ($wb)    { $wb.Close($false) }
-    if ($excel) { $excel.Quit() }
+    try { if ($wb)    { $wb.Close($false) } } catch { }
+    try { if ($excel) { $excel.Quit() } } catch { }
     foreach ($o in @($target, $wb, $excel)) {
-        if ($o) { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($o) }
+        if ($o) { try { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($o) } catch { } }
     }
     [GC]::Collect(); [GC]::WaitForPendingFinalizers()
 }

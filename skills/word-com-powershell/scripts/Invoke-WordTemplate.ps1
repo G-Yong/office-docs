@@ -32,8 +32,16 @@ $ErrorActionPreference = 'Stop'
 $wdReplaceAll = 2
 $wdFormatDocumentDefault = 16
 
-$tpl = [System.IO.Path]::GetFullPath((Join-Path (Get-Location) $TemplatePath))
-$out = [System.IO.Path]::GetFullPath((Join-Path (Get-Location) $OutPath))
+# Resolve a relative path against Get-Location; absolute paths pass through.
+# Join-Path alone is unsafe: on PS 5.1 it concatenates an absolute ChildPath
+# onto the base, producing "CWD\C:\abs\path" that GetFullPath rejects.
+function Resolve-AbsPath([string]$p) {
+    if ([System.IO.Path]::IsPathRooted($p)) { return $p }
+    [System.IO.Path]::GetFullPath((Join-Path (Get-Location) $p))
+}
+
+$tpl = Resolve-AbsPath $TemplatePath
+$out = Resolve-AbsPath $OutPath
 if (-not (Test-Path -LiteralPath $tpl)) { throw "Template not found: $tpl" }
 
 function Invoke-Replace($range, $find, $replace) {
@@ -65,14 +73,14 @@ try {
         }
     }
 
-    $doc.SaveAs([ref]$out, [ref]$wdFormatDocumentDefault)
+    $doc.SaveAs2($out, $wdFormatDocumentDefault)   # SaveAs2: safe with non-ASCII paths
     Write-Output "Wrote: $out"
 }
 finally {
-    if ($doc)  { $doc.Close($false) }
-    if ($word) { $word.Quit() }
+    try { if ($doc)  { $doc.Close($false) } } catch { }
+    try { if ($word) { $word.Quit() } } catch { }
     foreach ($o in @($doc, $word)) {
-        if ($o) { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($o) }
+        if ($o) { try { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($o) } catch { } }
     }
     [GC]::Collect(); [GC]::WaitForPendingFinalizers()
 }

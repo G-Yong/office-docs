@@ -26,7 +26,15 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$abs = [System.IO.Path]::GetFullPath((Join-Path (Get-Location) $Path))
+# Resolve a relative path against Get-Location; absolute paths pass through.
+# Join-Path alone is unsafe: on PS 5.1 it concatenates an absolute ChildPath
+# onto the base, producing "CWD\C:\abs\path" that GetFullPath rejects.
+function Resolve-AbsPath([string]$p) {
+    if ([System.IO.Path]::IsPathRooted($p)) { return $p }
+    [System.IO.Path]::GetFullPath((Join-Path (Get-Location) $p))
+}
+
+$abs = Resolve-AbsPath $Path
 if (-not (Test-Path -LiteralPath $abs)) { throw "File not found: $abs" }
 
 function Write-Sheet($ws) {
@@ -59,10 +67,10 @@ try {
     }
 }
 finally {
-    if ($wb)    { $wb.Close($false) }
-    if ($excel) { $excel.Quit() }
+    try { if ($wb)    { $wb.Close($false) } } catch { }
+    try { if ($excel) { $excel.Quit() } } catch { }
     foreach ($o in @($wb, $excel)) {
-        if ($o) { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($o) }
+        if ($o) { try { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($o) } catch { } }
     }
     [GC]::Collect(); [GC]::WaitForPendingFinalizers()
 }

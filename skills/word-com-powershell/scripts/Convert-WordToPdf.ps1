@@ -32,7 +32,15 @@ param(
 $ErrorActionPreference = 'Stop'
 $wdFormatPDF = 17
 
-$abs = [System.IO.Path]::GetFullPath((Join-Path (Get-Location) $Path))
+# Resolve a relative path against Get-Location; absolute paths pass through.
+# Join-Path alone is unsafe: on PS 5.1 it concatenates an absolute ChildPath
+# onto the base, producing "CWD\C:\abs\path" that GetFullPath rejects.
+function Resolve-AbsPath([string]$p) {
+    if ([System.IO.Path]::IsPathRooted($p)) { return $p }
+    [System.IO.Path]::GetFullPath((Join-Path (Get-Location) $p))
+}
+
+$abs = Resolve-AbsPath $Path
 if (-not (Test-Path -LiteralPath $abs)) { throw "Path not found: $abs" }
 
 if (Test-Path -LiteralPath $abs -PathType Container) {
@@ -51,9 +59,7 @@ try {
     $word.DisplayAlerts = 0
 
     foreach ($file in $files) {
-        $targetDir = if ($OutDir) {
-            [System.IO.Path]::GetFullPath((Join-Path (Get-Location) $OutDir))
-        } else { $file.DirectoryName }
+        $targetDir = if ($OutDir) { Resolve-AbsPath $OutDir } else { $file.DirectoryName }
         if (-not (Test-Path -LiteralPath $targetDir)) {
             New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
         }
@@ -62,18 +68,21 @@ try {
         $doc = $null
         try {
             $doc = $word.Documents.Open($file.FullName, $false, $true)
-            $doc.SaveAs([ref]$pdf, [ref]$wdFormatPDF)
+            $doc.SaveAs2($pdf, $wdFormatPDF)   # SaveAs2: safe with non-ASCII paths
             Write-Output "Converted: $($file.Name) -> $pdf"
         }
         finally {
             if ($doc) {
-                $doc.Close($false)
-                [void][Runtime.InteropServices.Marshal]::ReleaseComObject($doc)
+                try { $doc.Close($false) } catch { }
+                try { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($doc) } catch { }
             }
         }
     }
 }
 finally {
-    if ($word) { $word.Quit(); [void][Runtime.InteropServices.Marshal]::ReleaseComObject($word) }
+    if ($word) {
+        try { $word.Quit() } catch { }
+        try { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($word) } catch { }
+    }
     [GC]::Collect(); [GC]::WaitForPendingFinalizers()
 }

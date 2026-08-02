@@ -30,8 +30,16 @@ param(
 $ErrorActionPreference = 'Stop'
 $xlOpenXMLWorkbook = 51
 
-$csvAbs = [System.IO.Path]::GetFullPath((Join-Path (Get-Location) $CsvPath))
-$outAbs = [System.IO.Path]::GetFullPath((Join-Path (Get-Location) $OutPath))
+# Resolve a relative path against Get-Location; absolute paths pass through.
+# Join-Path alone is unsafe: on PS 5.1 it concatenates an absolute ChildPath
+# onto the base, producing "CWD\C:\abs\path" that GetFullPath rejects.
+function Resolve-AbsPath([string]$p) {
+    if ([System.IO.Path]::IsPathRooted($p)) { return $p }
+    [System.IO.Path]::GetFullPath((Join-Path (Get-Location) $p))
+}
+
+$csvAbs = Resolve-AbsPath $CsvPath
+$outAbs = Resolve-AbsPath $OutPath
 if (-not (Test-Path -LiteralPath $csvAbs)) { throw "CSV not found: $csvAbs" }
 
 # Read CSV preserving column order; build a header + data matrix.
@@ -45,7 +53,9 @@ $arr = New-Object 'object[,]' $rows, $cols
 for ($c = 0; $c -lt $cols; $c++) { $arr[0, $c] = $headers[$c] }
 for ($r = 0; $r -lt $records.Count; $r++) {
     for ($c = 0; $c -lt $cols; $c++) {
-        $arr[$r + 1, $c] = $records[$r].$($headers[$c])
+        # Parenthesize ($r + 1): PS 5.1 parses `$arr[$r + 1, $c]` as
+        # `$r + (1, $c)` (int + array -> op_Addition error) on multidim arrays.
+        $arr[($r + 1), $c] = $records[$r].$($headers[$c])
     }
 }
 
@@ -72,10 +82,10 @@ try {
     Write-Output "Wrote $($records.Count) rows -> $outAbs"
 }
 finally {
-    if ($wb)    { $wb.Close($false) }
-    if ($excel) { $excel.Quit() }
+    try { if ($wb)    { $wb.Close($false) } } catch { }
+    try { if ($excel) { $excel.Quit() } } catch { }
     foreach ($o in @($ws, $wb, $excel)) {
-        if ($o) { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($o) }
+        if ($o) { try { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($o) } catch { } }
     }
     [GC]::Collect(); [GC]::WaitForPendingFinalizers()
 }

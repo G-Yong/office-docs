@@ -209,6 +209,33 @@ for ($r = 1; $r -le $rows; $r++) {
 }
 ```
 
+### Extract to a UTF-8 file (recommended for AI/automation & CJK)
+
+Printing CJK text to stdout can mangle it — under PowerShell 5.1 the
+console/pipeline codepage is often CP936/GBK, so Chinese/CJK characters can be
+dropped or corrupted by the time the caller captures them. When anything (an
+agent, a tool, another script) will read the extracted text back, **write it to
+a UTF-8 *with BOM* file** and read the file instead of parsing stdout:
+
+```powershell
+$text = $doc.Content.Text
+[System.IO.File]::WriteAllText('C:\out\doc.txt', $text,
+                               [System.Text.UTF8Encoding]::new($true))   # $true = BOM
+```
+
+The shipped `Get-WordText.ps1` already does this for you via `-OutFile`:
+
+```powershell
+.\scripts\Get-WordText.ps1 -Path .\报告.doc -IncludeTables -OutFile .\doc.txt
+# then read doc.txt with your editor — no console mojibake
+```
+
+> **Prefer passing the path as a parameter** (`-Path <file>`) over embedding it
+> as a string literal inside a `.ps1`. A parameterized script stays pure ASCII,
+> so it runs under PS 5.1 without the UTF-8-BOM dance described above. Only
+> when the value must live in a file (e.g. a batch list), keep that file
+> UTF-8 with BOM too.
+
 ## Writing
 
 ### Find and replace (whole document)
@@ -294,7 +321,9 @@ $doc.SaveAs2($pdfPath,  17)                   # 17 = wdFormatPDF
 
 ## Ready-to-use scripts
 
-- `scripts/Get-WordText.ps1` — extract all text (and optionally tables) from a doc.
+- `scripts/Get-WordText.ps1` — extract all text (and optionally tables) from a
+  doc. Add `-OutFile <file>` to write UTF-8 (BOM) output to a file instead of
+  stdout — recommended for CJK text and anything an agent/tool will read back.
 - `scripts/Set-WordReplace.ps1` — find/replace across body, headers, and footers.
 - `scripts/Convert-WordToPdf.ps1` — batch-convert `.docx` → `.pdf`.
 - `scripts/Invoke-WordTemplate.ps1` — fill a `{{placeholder}}` template and save.
@@ -307,11 +336,13 @@ All scripts implement the full open/try/finally/release lifecycle. Run any with
 | Mistake | Symptom | Fix |
 |---------|---------|-----|
 | Relative path to `Open`/`SaveAs` | File "disappears" or opens wrong file | `[System.IO.Path]::GetFullPath()` first |
+| `Join-Path (Get-Location) $path` with an **absolute** `$path` | `GetFullPath` throws `NotSupportedException` ("不支持给定路径的格式") — PS 5.1 concatenates into `CWD\C:\abs\path` | Check `[System.IO.Path]::IsPathRooted($path)` first; pass absolute paths through unchanged. See `Resolve-AbsPath` in the scripts |
 | `DisplayAlerts` left on | Script hangs invisibly | `$word.DisplayAlerts = 0` |
 | 0-based collection index | "Item -1 not found" / off-by-one | All COM collections are **1-based** |
 | Not releasing COM refs | `WINWORD.EXE` piles up, file locked | `finally` + `ReleaseComObject` + GC |
 | `Close()` without arg after edits | Hidden "save changes?" prompt | `$doc.Close($false)` or `$doc.Save()` first |
 | Reading cell text raw | Trailing `\r\a` junk | `-replace "[\r\a]", ""` |
+| Printing CJK extraction to stdout | Garbled / missing Chinese text in captured output | Use `Get-WordText.ps1 -OutFile`, or `[System.IO.File]::WriteAllText($p, $text, [System.Text.UTF8Encoding]::new($true))` and read the file |
 | Expecting it to work in CI | Random COM errors / no output | Use a library (see overview) |
 | Non-ASCII script saved UTF-8 **without** BOM | Parser error at the line with Chinese/CJK text; `exit code 1` under PS 5.1 | Save `.ps1` as **UTF-8 with BOM** (see Script File Encoding) |
 | `$word.Quit()` throws RPC failure `0x800706BE` in `finally` | Doc still saved fine, but script exits non-zero | Wrap `Quit()` in its own `try{}catch{}`; confirm no orphan `WINWORD.EXE` |
