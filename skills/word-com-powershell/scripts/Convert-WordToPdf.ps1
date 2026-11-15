@@ -68,7 +68,7 @@ try {
         $doc = $null
         try {
             $doc = $word.Documents.Open($file.FullName, $false, $true)
-            $doc.SaveAs2($pdf, $wdFormatPDF)   # SaveAs2: safe with non-ASCII paths
+            $doc.SaveAs2([string]$pdf, $wdFormatPDF)   # SaveAs2: safe with non-ASCII paths
             Write-Output "Converted: $($file.Name) -> $pdf"
         }
         finally {
